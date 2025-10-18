@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Editor App</title>
+  </head>
+  <style>
+    body {
+      margin: 0;
+      font-family: "Arial", sans-serif;
+      background: linear-gradient(120deg, #89f7fe, #66a6ff);
+      color: #fff;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 10px;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 2.5em;
+    }
+    .content {
+      display: flex;
+      gap: 20px;
+    }
+    .sidebar {
+      width: 250px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-radius: 10px;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      min-height: 500px;
+      position: relative;
+    }
+    #previewImage {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 10px;
+    }
+    #placeholder {
+      position: absolute;
+      font-size: 1.5em;
+      color: #fff;
+    }
+    button.btn {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      transition: 0.3s;
+    }
+    button.btn:hover {
+      background: rgba(255, 255, 255, 0.5);
+    }
+    button.primary {
+      background: #ff7f50;
+      color: #fff;
+    }
+    button.primary:hover {
+      background: #ff4500;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    #filterOptions {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+    }
+    @media (max-width: 900px) {
+      .content {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+  </style>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🖼️ Image Editor App</h1>
+        <p>Upload, edit, and save images easily!</p>
+      </div>
+
+      <div class="content">
+        <div class="sidebar">
+          <div class="upload-area">
+            <button class="btn primary" id="uploadBtn">Upload An Image</button>
+            <input type="file" id="fileInput" accept="image/*" />
+          </div>
+          <button class="btn" onclick="applyEdit('grayscale')">
+            Grayscale
+          </button>
+          <button class="btn" onclick="applyEdit('blur')">Blur</button>
+          <button class="btn" onclick="applyEdit('edge_detect')">
+            Edge Detect
+          </button>
+          <button class="btn" onclick="applyEdit('sharpen')">Sharpen</button>
+          <button class="btn" onclick="toggleFilters()">Filters</button>
+          <div id="filterOptions">
+            <button class="btn" onclick="applyEdit('sepia')">Sepia</button>
+            <button class="btn" onclick="applyEdit('vintage')">Vintage</button>
+            <button class="btn" onclick="applyEdit('cool')">Cool Tone</button>
+            <button class="btn" onclick="applyEdit('warm')">Warm Tone</button>
+            <button class="btn" onclick="applyEdit('negative')">
+              Negative
+            </button>
+            <button class="btn" onclick="applyEdit('emboss')">Emboss</button>
+            <button class="btn" onclick="applyEdit('pencil_sketch')">
+              Pencil Sketch
+            </button>
+            <button class="btn" onclick="applyEdit('cartoon')">Cartoon</button>
+          </div>
+          <button class="btn" onclick="applyEdit('rotate_left')">
+            Rotate Left
+          </button>
+          <button class="btn" onclick="applyEdit('rotate_right')">
+            Rotate Right
+          </button>
+          <button class="btn" onclick="applyEdit('flip_horizontal')">
+            Flip Horizontal
+          </button>
+          <button class="btn" onclick="applyEdit('flip_vertical')">
+            Flip Vertical
+          </button>
+          <button class="btn" onclick="resetImage()">Reset</button>
+          <button class="btn primary" onclick="downloadImage()">
+            Download
+          </button>
+        </div>
+
+        <div class="main">
+          <div id="placeholder">No Image Uploaded</div>
+          <img id="previewImage" />
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const fileInput = document.getElementById("fileInput");
+      const uploadBtn = document.getElementById("uploadBtn");
+      const previewImage = document.getElementById("previewImage");
+      const placeholder = document.getElementById("placeholder");
+      const filterOptions = document.getElementById("filterOptions");
+
+      uploadBtn.addEventListener("click", () => fileInput.click());
+
+      fileInput.addEventListener("change", async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const formData = new FormData();
+        formData.append("file", file);
+        try {
+          const res = await fetch("/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (data.success) showImage(data.filename);
+          else alert(data.error);
+        } catch (err) {
+          alert("Upload error: " + err.message);
+        }
+      });
+
+      async function applyEdit(action) {
+        try {
+          const res = await fetch("/edit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action }),
+          });
+          const data = await res.json();
+          if (data.success) showImage(data.filename);
+          else alert(data.error);
+        } catch (err) {
+          alert("Edit error: " + err.message);
+        }
+      }
+
+      function toggleFilters() {
+        if (filterOptions.style.display === "none")
+          filterOptions.style.display = "block";
+        else filterOptions.style.display = "none";
+      }
+
+      async function resetImage() {
+        try {
+          const res = await fetch("/reset");
+          const data = await res.json();
+          if (data.success) showImage(data.filename);
+          else alert(data.error);
+        } catch (err) {
+          alert("Reset error: " + err.message);
+        }
+      }
+
+      function showImage(filename) {
+        previewImage.src = `/preview/${filename}?t=${Date.now()}`;
+        previewImage.style.display = "block";
+        placeholder.style.display = "none";
+      }
+
+      function downloadImage() {
+        window.location.href = "/download";
+      }
+    </script>
+  </body>
+</html>
